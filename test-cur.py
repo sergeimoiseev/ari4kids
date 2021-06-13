@@ -6,14 +6,29 @@ from random import randint
 import pandas as pd
 from datetime import datetime
 import os
+import time
+from platform import uname
+
+def in_wsl() -> bool:
+    """
+    WSL is thought to be the only common Linux kernel with Microsoft in the name, per Microsoft:
+    https://github.com/microsoft/WSL/issues/4071#issuecomment-496715404
+    """
+    return 'WSL' in uname().release
+
 
 menu = ['учиться', 'посмотреть журнал', 'выйти']
 test_len = 10
 df = pd.DataFrame(index=range(test_len), columns=[
         'name',
-        'a','b','res','elapsed_time','correct', 'test_res', 'test_len'
+        'a','b','user_input','elapsed_time','correct', 'test_score', 'test_len'
     ])
-fpath = "c:\\Users\\Sergei\\Dropbox\\ari4kids\\"
+
+if in_wsl():
+    # не работает - в wsl возвращате False
+    fpath = os.path.join("mnt","c","Users","Sergei","Dropbox","ari4kids")
+else:
+    fpath = os.path.join("c:",os.sep,"Users","Sergei","Dropbox","ari4kids")
 
 def print_menu(stdscr, selected_row_idx):
     stdscr.clear()
@@ -28,6 +43,8 @@ def print_menu(stdscr, selected_row_idx):
             stdscr.attroff(curses.color_pair(1))
         else:
             stdscr.addstr(y, x, row)
+    if in_wsl():
+        stdscr.addstr(0, 0, "Сейчас я работаю в WSL!")
     stdscr.refresh()
 
 
@@ -52,14 +69,14 @@ def learn_ui(stdscr):
     stdscr.refresh()
     return a + b, a, b, editwin
 
-def save_results(i,a,b,res, correct, test_res, test_len):
-    # df.iloc[i,:]['name']=name
+def save_results(i,name,a,b,user_input,elapsed_time, correct, test_score, test_len):
+    df.iloc[i,:]['name']=name
     df.iloc[i,:]['a'] = a
     df.iloc[i,:]['b'] = b
-    df.iloc[i,:]['res'] = res
-    # df.iloc[i,:]['elapsed_time'] = elapsed_time
+    df.iloc[i,:]['user_input'] = user_input
+    df.iloc[i,:]['elapsed_time'] = elapsed_time
     df.iloc[i,:]['correct'] = correct
-    df.iloc[i,:]['test_res'] = test_res
+    df.iloc[i,:]['test_score'] = test_score
     df.iloc[i,:]['test_len'] = test_len
 
 def main(stdscr):
@@ -72,6 +89,21 @@ def main(stdscr):
     # specify the current selected row
     current_row = 0
 
+    # Просим представиться
+    stdscr.clear()
+    stdscr.addstr(0, 0, "Я - Арифметик! А как тебя зовут?")
+    editwin = curses.newwin(1,30, 2,1)
+    rectangle(stdscr, 1,0, 1+1+1, 1+30+1)
+    stdscr.refresh()
+    name_box = Textbox(editwin)
+    # Позвольте пользователю редактировать, пока не будет нажата Ctrl-G.
+    name_box.edit()
+    # Получить результирующее содержимое
+    name = name_box.gather().strip()
+    print_center(stdscr, "Привет, {}! Нажми любую клавишу, чтобы продолжить.".format(name))
+    stdscr.getch()
+    stdscr.refresh()
+
     # print the menu
     print_menu(stdscr, current_row)
 
@@ -83,37 +115,43 @@ def main(stdscr):
         elif key == curses.KEY_DOWN and current_row < len(menu)-1:
             current_row += 1
         elif key == curses.KEY_ENTER or key in [10, 13]:
-            print_center(stdscr, "Ты решил '{}'".format(menu[current_row]))
-            stdscr.getch()
+            
             # if user selected last row, exit the program
             if current_row == len(menu)-1:
                 break
             elif menu[current_row] == "учиться":
 
-                test_res = 0
+                test_score = 0
                 for i in range(test_len):
+
                     answ, a, b, editwin = learn_ui(stdscr)
 
                     box = Textbox(editwin)
+                    # засекаем время
+                    start = time.time()
                     # Позвольте пользователю редактировать, пока не будет нажата Ctrl-G.
                     box.edit()
                     # Получить результирующее содержимое
                     message = box.gather()
+                    elapsed_time = time.time() - start
                     num_entered = int(message.split()[0])
                     if answ == num_entered:
-                        test_res += 1
+                        test_score += 1
                         correct = True
-                        print_center(stdscr, "Твой ответ %d. Верно!" % (num_entered))
+                        # print_center(stdscr, "Твой ответ %d. Верно!" % (num_entered))
                     else:
                         correct = False
-                        print_center(stdscr, "Твой ответ %d. Ошибся.." % (num_entered))
-                    save_results(i,a,b, num_entered, correct, test_res, test_len)
-                    stdscr.refresh()
-                    stdscr.getch()
+                        # print_center(stdscr, "Твой ответ %d. Ошибся.." % (num_entered))
+                    save_results(i,name,a,b,num_entered,elapsed_time, correct, test_score, test_len)
+                    # stdscr.refresh()
+                    # stdscr.getch()
                 df.to_excel(os.path.join(fpath,
-                    "ari4kids_test %s %s.xlsx" % ('curses_test',
+                    "ari4kids_test %s %s.xlsx" % (name,
                     datetime.now().strftime("%m_%d_%Y %H_%M_%S"))))
-
+            else:
+                print_center(stdscr, 
+                    "Ты выбрал {}, но это пока не возможно. Нажми любую клавишу, чтобы вернуться в меню.".format(menu[current_row]))
+                stdscr.getch()
         print_menu(stdscr, current_row)
 
 
