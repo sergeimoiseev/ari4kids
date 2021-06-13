@@ -4,7 +4,9 @@ from random import randint
 import time
 import pandas as pd
 from datetime import datetime
+import os
 
+fpath = "c:\\Users\\Sergei\\Dropbox\\ari4kids\\"
 test_len = 10
 
 df = pd.DataFrame(index=range(test_len), columns=[
@@ -28,9 +30,10 @@ print("Привет, %s! \nРеши %d примеров на сложение." 
 
 test_res = 0
 for i in range(test_len):
-    # a = randint(1,10)
+    a = randint(1,10)
     a = 1
-    b = randint(1,10)
+    # b = randint(1,10)
+    b = randint(1,4)
     start = time.time()
     res = int(input("%d + %d = " % (a, b)))
     end = time.time()
@@ -45,7 +48,9 @@ for i in range(test_len):
     print("Пример %d из %d:" % (i+1, test_len))
     save_results(i,name,a,b,res,elapsed_time, correct, test_res, test_len)
 # backup_results
-df.to_excel('ari4kids_test_%s.xlsx' % (datetime.now().strftime("%m_%d_%Y, %H_%M_%S")))
+df.to_excel(os.path.join(fpath,
+    "ari4kids_test %s %s.xlsx" % (name,
+        datetime.now().strftime("%m_%d_%Y %H_%M_%S"))))
 if test_res == test_len:
     print("Все примеры решены верно!")
 elif test_res > test_len/2:
