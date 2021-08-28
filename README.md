@@ -12,6 +12,7 @@ conda create -n ari4kids python=3.8
 
 ## install curses via pip
 
+conda activate ari4kids
 pip install windows-curses
 
 ## download
