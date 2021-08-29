@@ -24,11 +24,12 @@ df = pd.DataFrame(index=range(test_len), columns=[
         'a','b','user_input','elapsed_time','correct', 'test_score', 'test_len'
     ])
 
+# TODO: при первом запуске запрашивать путь до папки, затем хранить его в неверсионируемом файле
 if in_wsl():
     # не работает - в wsl возвращате False
-    fpath = os.path.join("mnt","c","Users","Sergei","Dropbox","ari4kids")
+    fpath = os.path.join("mnt","c","Users","User","Dropbox","ari4kids")
 else:
-    fpath = os.path.join("c:",os.sep,"Users","Sergei","Dropbox","ari4kids")
+    fpath = os.path.join("c:",os.sep,"Users","User","Dropbox","ari4kids")
 
 def print_menu(stdscr, selected_row_idx):
     stdscr.clear()
