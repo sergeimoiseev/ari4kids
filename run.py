@@ -19,9 +19,10 @@ def in_wsl() -> bool:
 
 menu = ['учиться', 'посмотреть журнал', 'выйти']
 test_len = 10
+max_think_time = 5
 df = pd.DataFrame(index=range(test_len), columns=[
         'name',
-        'a','b','user_input','elapsed_time','correct', 'test_score', 'test_len'
+        'a','b','user_input','elapsed_time','correct', 'test_score', 'test_len', 'max_think_time', 'solved_in_mind'
     ])
 
 # TODO: при первом запуске запрашивать путь до папки, затем хранить его в неверсионируемом файле
@@ -85,6 +86,9 @@ def save_results(i,name,a,b,user_input,elapsed_time, correct, test_score, test_l
     df.iloc[i,:]['correct'] = correct
     df.iloc[i,:]['test_score'] = test_score
     df.iloc[i,:]['test_len'] = test_len
+    df.iloc[i,:]['max_think_time'] = max_think_time
+    df.iloc[i,:]['solved_in_mind'] = max_think_time > elapsed_time
+    
 
 def main(stdscr):
     # turn off cursor blinking
@@ -149,7 +153,7 @@ def main(stdscr):
                     else:
                         correct = False
                         # print_center(stdscr, "Твой ответ %d. Ошибся.." % (num_entered))
-                    save_results(i,name,a,b,num_entered,elapsed_time, correct, test_score, test_len)
+                    save_results(i,name,a,b,num_entered,elapsed_time, correct, test_score, test_len, )
                     # stdscr.refresh()
                     # stdscr.getch()
                 df.to_excel(os.path.join(fpath,
