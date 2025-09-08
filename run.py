@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 import os
 import time
-from platform import uname
+from platform import uname, system
 
 def in_wsl() -> bool:
     """
@@ -25,11 +25,17 @@ df = pd.DataFrame(index=range(test_len), columns=[
     ])
 
 # TODO: при первом запуске запрашивать путь до папки, затем хранить его в неверсионируемом файле
-if in_wsl():
-    # не работает - в wsl возвращате False
-    fpath = os.path.join("mnt","c","Users","User","Dropbox","ari4kids")
+if system() == 'Linux':
+    print("This code is running on a Linux system.")
+    fpath = os.path.join("~","Dropbox","ari4kids")
+    # raise(os.error)
 else:
-    fpath = os.path.join("c:",os.sep,"Users","User","Dropbox","ari4kids")
+    print(f"This code is running on a {system()} system, not Linux.")
+    if in_wsl():
+        # не работает - в wsl возвращате False
+        fpath = os.path.join("mnt","c","Users","User","Dropbox","ari4kids")
+    else:
+        fpath = os.path.join("c:",os.sep,"Users","User","Dropbox","ari4kids")
 
 def print_menu(stdscr, selected_row_idx):
     stdscr.clear()
