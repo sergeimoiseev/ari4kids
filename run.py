@@ -70,7 +70,7 @@ def learn_ui(stdscr):
     
     a = randint(1,10)
     b = randint(1,4)
-    stdscr.addstr(0, 0, "%d + %d = " % (a, b))
+    stdscr.addstr(0, 0, "%d * %d = " % (a, b))
 
     editwin = curses.newwin(1,10, 2,1)
     rectangle(stdscr, 1,0, 1+1+1, 1+10+1)
