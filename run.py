@@ -75,7 +75,7 @@ def learn_ui(stdscr):
     editwin = curses.newwin(1,10, 2,1)
     rectangle(stdscr, 1,0, 1+1+1, 1+10+1)
     stdscr.refresh()
-    return a + b, a, b, editwin
+    return a * b, a, b, editwin
 
 def save_results(i,name,a,b,user_input,elapsed_time, correct, test_score, test_len):
     df.iloc[i,:]['name']=name
