@@ -18,11 +18,11 @@ def in_wsl() -> bool:
 
 
 menu = ['учиться', 'посмотреть журнал', 'выйти']
-test_len = 10
+test_len = 30
 max_think_time = 5
 df = pd.DataFrame(index=range(test_len), columns=[
         'name',
-        'a','b','user_input','elapsed_time','correct', 'test_score', 'test_len', 'max_think_time', 'solved_in_mind'
+        'a','b','operation','user_input','elapsed_time','correct', 'test_score', 'test_len', 'max_think_time', 'solved_in_mind'
     ])
 
 # TODO: при первом запуске запрашивать путь до папки, затем хранить его в неверсионируемом файле
@@ -68,19 +68,23 @@ def learn_ui(stdscr):
     stdscr.clear()
     h, w = stdscr.getmaxyx()
     
-    a = randint(1,10)
-    b = randint(1,4)
-    stdscr.addstr(0, 0, "%d * %d = " % (a, b))
+    a = randint(2,9)
+    b = randint(2,9)
+    operation = "*"
+
+    eval_str = "%d %s %d" % (a, operation, b)
+    stdscr.addstr(0, 0, eval_str + " = ")
 
     editwin = curses.newwin(1,10, 2,1)
     rectangle(stdscr, 1,0, 1+1+1, 1+10+1)
     stdscr.refresh()
-    return a * b, a, b, editwin
+    return eval(eval_str), a, b, operation, editwin
 
-def save_results(i,name,a,b,user_input,elapsed_time, correct, test_score, test_len):
+def save_results(i,name,a,b,op,user_input,elapsed_time, correct, test_score, test_len):
     df.iloc[i,:]['name']=name
     df.iloc[i,:]['a'] = a
     df.iloc[i,:]['b'] = b
+    df.iloc[i,:]['operation'] = op
     df.iloc[i,:]['user_input'] = user_input
     df.iloc[i,:]['elapsed_time'] = elapsed_time
     df.iloc[i,:]['correct'] = correct
@@ -135,7 +139,7 @@ def main(stdscr):
                 test_score = 0
                 for i in range(test_len):
 
-                    answ, a, b, editwin = learn_ui(stdscr)
+                    answ, a, b, op, editwin = learn_ui(stdscr)
 
                     box = Textbox(editwin)
                     # засекаем время
@@ -153,7 +157,7 @@ def main(stdscr):
                     else:
                         correct = False
                         # print_center(stdscr, "Твой ответ %d. Ошибся.." % (num_entered))
-                    save_results(i,name,a,b,num_entered,elapsed_time, correct, test_score, test_len, )
+                    save_results(i,name,a,b,op,num_entered,elapsed_time, correct, test_score, test_len, )
                     # stdscr.refresh()
                     # stdscr.getch()
                 df.to_excel(os.path.join(fpath,
