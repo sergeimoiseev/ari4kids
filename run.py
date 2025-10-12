@@ -68,8 +68,8 @@ def learn_ui(stdscr):
     stdscr.clear()
     h, w = stdscr.getmaxyx()
     
-    a = randint(2,9)
-    b = randint(2,9)
+    a = randint(2,15)
+    b = randint(2,15)
     operation = "*"
 
     eval_str = "%d %s %d" % (a, operation, b)
