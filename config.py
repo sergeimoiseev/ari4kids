@@ -2,11 +2,15 @@
 # -*- coding: utf-8 -*-
 import os
 from platform import system, uname
+import json
 
 
-TEST_LEN = 20
+DEFAULT_TEST_LEN = 10
+TEST_LEN_OPTIONS = [10, 20, 30]
 USER_FILE = "users.txt"
 LOG_PREFIX = "ari4kids_test"
+SETTINGS_FILE = "settings.json"
+MENU_SEPARATOR = None
 
 TRAINING_MODES = [
     ("сложение", "addition"),
@@ -17,7 +21,12 @@ TRAINING_MODES = [
     ("дроби", "fractions"),
     ("дроби со скобками", "fraction_brackets"),
 ]
-MENU = [title for title, _ in TRAINING_MODES] + ["посмотреть журнал", "выйти"]
+MENU = [title for title, _ in TRAINING_MODES] + [
+    MENU_SEPARATOR,
+    "настройки",
+    "посмотреть журнал",
+    "выйти",
+]
 
 
 def in_wsl() -> bool:
@@ -47,3 +56,32 @@ def ensure_storage():
 
 def storage_path(filename):
     return os.path.join(fpath, filename)
+
+
+def load_settings():
+    ensure_storage()
+    try:
+        with open(storage_path(SETTINGS_FILE), "r", encoding="utf-8") as settings_file:
+            settings = json.load(settings_file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        settings = {}
+    test_len = settings.get("test_len", DEFAULT_TEST_LEN)
+    if test_len not in TEST_LEN_OPTIONS:
+        test_len = DEFAULT_TEST_LEN
+    return {"test_len": test_len}
+
+
+def save_settings(settings):
+    ensure_storage()
+    with open(storage_path(SETTINGS_FILE), "w", encoding="utf-8") as settings_file:
+        json.dump(settings, settings_file, ensure_ascii=False, indent=2)
+
+
+def get_test_len():
+    return load_settings()["test_len"]
+
+
+def set_test_len(test_len):
+    if test_len not in TEST_LEN_OPTIONS:
+        raise ValueError("Unsupported test length")
+    save_settings({"test_len": test_len})

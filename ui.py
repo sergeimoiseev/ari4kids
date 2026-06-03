@@ -5,7 +5,15 @@ from curses.textpad import Textbox, rectangle
 from datetime import datetime
 import time
 
-from config import MENU, TEST_LEN, TRAINING_MODES, in_wsl
+from config import (
+    MENU,
+    MENU_SEPARATOR,
+    TEST_LEN_OPTIONS,
+    TRAINING_MODES,
+    get_test_len,
+    in_wsl,
+    set_test_len,
+)
 from journal import format_duration, load_journal_rows
 from storage import load_users, save_results, save_user
 from tasks import GENERATORS, is_correct, parse_answer
@@ -27,6 +35,12 @@ def draw_menu(stdscr, items, selected_row_idx, title=None, footer=None):
         stdscr.addstr(1, max(0, w // 2 - len(title) // 2), title[: w - 1])
     start_y = max(3, h // 2 - len(items) // 2)
     for idx, row in enumerate(items):
+        if row is MENU_SEPARATOR:
+            line_width = min(28, max(0, w - 4))
+            x = max(0, w // 2 - line_width // 2)
+            y = start_y + idx
+            stdscr.addstr(y, x, "-" * line_width)
+            continue
         x = max(0, w // 2 - len(row) // 2)
         y = start_y + idx
         if idx == selected_row_idx:
@@ -42,15 +56,33 @@ def draw_menu(stdscr, items, selected_row_idx, title=None, footer=None):
     stdscr.refresh()
 
 
+def is_selectable_menu_item(item):
+    return item is not MENU_SEPARATOR
+
+
+def next_selectable_index(items, current_row, direction):
+    next_row = current_row
+    while True:
+        candidate = next_row + direction
+        if candidate < 0 or candidate >= len(items):
+            return next_row
+        next_row = candidate
+        if is_selectable_menu_item(items[next_row]):
+            return next_row
+
+
 def select_from_menu(stdscr, items, title=None, footer=None):
-    current_row = 0
+    current_row = next(
+        (idx for idx, item in enumerate(items) if is_selectable_menu_item(item)),
+        0,
+    )
     draw_menu(stdscr, items, current_row, title, footer)
     while True:
         key = stdscr.getch()
-        if key == curses.KEY_UP and current_row > 0:
-            current_row -= 1
-        elif key == curses.KEY_DOWN and current_row < len(items) - 1:
-            current_row += 1
+        if key == curses.KEY_UP:
+            current_row = next_selectable_index(items, current_row, -1)
+        elif key == curses.KEY_DOWN:
+            current_row = next_selectable_index(items, current_row, 1)
         elif key in [curses.KEY_ENTER, 10, 13]:
             return current_row
         draw_menu(stdscr, items, current_row, title, footer)
@@ -129,7 +161,8 @@ def run_training(stdscr, user, mode_title, mode_key):
     results = []
     test_score = 0
     started_at = datetime.now()
-    for i in range(TEST_LEN):
+    test_len = get_test_len()
+    for i in range(test_len):
         task = GENERATORS[mode_key]()
         editwin = show_task(stdscr, task)
         box = Textbox(editwin)
@@ -153,7 +186,7 @@ def run_training(stdscr, user, mode_title, mode_key):
                 "elapsed_time": elapsed_time,
                 "correct": correct,
                 "test_score": test_score,
-                "test_len": TEST_LEN,
+                "test_len": test_len,
             }
         )
     save_results(user, mode_key, started_at, results)
@@ -189,7 +222,7 @@ def draw_journal(stdscr, rows, user_filter, top):
     if user_filter:
         title += f" | пользователь: {user_filter}"
     stdscr.addstr(0, 0, title[: w - 1])
-    stdscr.addstr(1, 0, "F - фильтр, A - все, Esc/Enter - назад"[: w - 1])
+    stdscr.addstr(1, 0, "F - фильтр, A - все, Esc - назад"[: w - 1])
     header = format_journal_line(
         {
             "user": "Пользователь",
@@ -230,7 +263,7 @@ def show_journal(stdscr, initial_user_filter=None):
     while True:
         visible_count = draw_journal(stdscr, rows, user_filter, top)
         key = stdscr.getch()
-        if key in [27, curses.KEY_ENTER, 10, 13]:
+        if key == 27:
             return
         if key == curses.KEY_UP and top > 0:
             top -= 1
@@ -243,6 +276,16 @@ def show_journal(stdscr, initial_user_filter=None):
             idx = select_from_menu(stdscr, users + ["все пользователи"], "Фильтр журнала")
             user_filter = users[idx] if idx < len(users) else None
             top = 0
+
+
+def show_settings(stdscr):
+    current_test_len = get_test_len()
+    items = [
+        f"{option} задач" + (" *" if option == current_test_len else "")
+        for option in TEST_LEN_OPTIONS
+    ]
+    idx = select_from_menu(stdscr, items, "Настройки: число задач в прогоне")
+    set_test_len(TEST_LEN_OPTIONS[idx])
 
 
 def main(stdscr):
@@ -260,6 +303,9 @@ def main(stdscr):
             break
         if selected == "посмотреть журнал":
             show_journal(stdscr)
+            continue
+        if selected == "настройки":
+            show_settings(stdscr)
             continue
         mode_title, mode_key = TRAINING_MODES[current_row]
         run_training(stdscr, user, mode_title, mode_key)

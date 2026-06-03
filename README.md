@@ -24,3 +24,32 @@ or clone current repo
 navigate to run.py file
 
 python3 run.py
+
+# build exe for Windows
+
+Create and activate a Python 3.11 environment, then install runtime dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
+python -m pip install windows-curses pyinstaller
+```
+
+Build the executable from the project root:
+
+```powershell
+python -m PyInstaller --onefile --name ari4kids run.py
+```
+
+The built application will be here:
+
+```powershell
+dist\ari4kids.exe
+```
+
+Run it from PowerShell or `cmd`:
+
+```powershell
+.\dist\ari4kids.exe
+```
+
+Do not use `--noconsole`: this is a curses console application, so it needs a terminal window.
