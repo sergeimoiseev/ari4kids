@@ -67,6 +67,20 @@ def read_textbox(stdscr, prompt, width=30):
     return box.gather().strip()
 
 
+def edit_textbox_until_done_or_escape(box):
+    cancelled = False
+
+    def validate_key(key):
+        nonlocal cancelled
+        if key == 27:
+            cancelled = True
+            return 7
+        return key
+
+    box.edit(validate_key)
+    return cancelled, box.gather()
+
+
 def choose_user(stdscr):
     users = load_users()
     if users:
@@ -91,12 +105,22 @@ def show_task(stdscr, task):
     stdscr.clear()
     h, w = stdscr.getmaxyx()
     prompt = f"{task['expression']} = "
-    stdscr.addstr(0, 0, prompt[: w - 1])
+    prompt_y = max(0, h // 2 - 2)
+    prompt_x = max(0, w // 2 - len(prompt) // 2)
+    stdscr.addstr(prompt_y, prompt_x, prompt[: w - prompt_x - 1])
+
+    input_width = min(20, max(1, w - 4))
+    border_width = input_width + 2
+    border_x = max(0, w // 2 - border_width // 2)
+    border_y = min(max(0, prompt_y + 2), max(0, h - 3))
+    editwin = curses.newwin(1, input_width, border_y + 1, border_x + 1)
+    rectangle(stdscr, border_y, border_x, border_y + 2, border_x + border_width - 1)
+
     if task["answer_type"] == "fraction":
         hint = 'Ответ вводи простой дробью, например "1/3".'
-        stdscr.addstr(4, 0, hint[: w - 1])
-    editwin = curses.newwin(1, 20, 2, 1)
-    rectangle(stdscr, 1, 0, 3, 21)
+        hint_y = min(h - 1, border_y + 4)
+        hint_x = max(0, w // 2 - len(hint) // 2)
+        stdscr.addstr(hint_y, hint_x, hint[: w - hint_x - 1])
     stdscr.refresh()
     return editwin
 
@@ -110,9 +134,11 @@ def run_training(stdscr, user, mode_title, mode_key):
         editwin = show_task(stdscr, task)
         box = Textbox(editwin)
         start = time.time()
-        box.edit()
+        cancelled, message = edit_textbox_until_done_or_escape(box)
         elapsed_time = time.time() - start
-        entered_text, parsed_value = parse_answer(box.gather(), task["answer_type"])
+        if cancelled:
+            return
+        entered_text, parsed_value = parse_answer(message, task["answer_type"])
         correct = is_correct(task, entered_text, parsed_value)
         if correct:
             test_score += 1
