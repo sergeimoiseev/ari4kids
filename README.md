@@ -8,7 +8,7 @@ Curses based tool automizing child's learning of simple arithmetics.
 
 conda config --add channels conda-forge  
 conda config --set channel_priority strict  
-conda create -n ari4kids python=3.8 
+conda create -n ari4kids python openpyxl pandas ncurses
 
 ## install curses via pip
 
