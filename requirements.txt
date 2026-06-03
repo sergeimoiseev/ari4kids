@@ -1,0 +1,5 @@
+# Requires Python 3.11
+#  platform_system == "Windows"
+pandas
+openpyxl
+# windows-curses
