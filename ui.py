@@ -119,7 +119,6 @@ def run_training(stdscr, user, mode_title, mode_key):
         results.append(
             {
                 "user": user,
-                "name": user,
                 "date": started_at.strftime("%Y-%m-%d %H:%M:%S"),
                 "mode": mode_title,
                 "expression": task["expression"],
@@ -131,15 +130,30 @@ def run_training(stdscr, user, mode_title, mode_key):
                 "test_len": TEST_LEN,
             }
         )
-        stdscr.clear()
-        status = "Верно!" if correct else f"Нужно: {task['answer_text']}"
-        stdscr.addstr(0, 0, status)
-        stdscr.addstr(2, 0, f"{i + 1}/{TEST_LEN}. Нажми любую клавишу.")
-        stdscr.refresh()
-        stdscr.getch()
     save_results(user, mode_key, started_at, results)
-    print_center(stdscr, f"Готово: {test_score} из {TEST_LEN}. Нажми любую клавишу.")
-    stdscr.getch()
+    show_journal(stdscr, user)
+
+
+def fit_cell(value, width, align="left"):
+    text = str(value)
+    if len(text) > width:
+        text = text[: max(0, width - 1)] + "~"
+    if align == "right":
+        return text.rjust(width)
+    return text.ljust(width)
+
+
+def format_journal_line(values):
+    columns = [
+        (values["user"], 12, "left"),
+        (values["date"], 16, "left"),
+        (values["mode"], 20, "left"),
+        (values["correct"], 5, "right"),
+        (values["incorrect"], 6, "right"),
+        (values["elapsed"], 5, "right"),
+        (values["speed"], 8, "right"),
+    ]
+    return " | ".join(fit_cell(value, width, align) for value, width, align in columns)
 
 
 def draw_journal(stdscr, rows, user_filter, top):
@@ -150,14 +164,30 @@ def draw_journal(stdscr, rows, user_filter, top):
         title += f" | пользователь: {user_filter}"
     stdscr.addstr(0, 0, title[: w - 1])
     stdscr.addstr(1, 0, "F - фильтр, A - все, Esc/Enter - назад"[: w - 1])
-    header = "Пользователь | Дата | Режим | Верно | Ошибки | Время | Скорость"
+    header = format_journal_line(
+        {
+            "user": "Пользователь",
+            "date": "Дата",
+            "mode": "Режим",
+            "correct": "Верно",
+            "incorrect": "Ошибки",
+            "elapsed": "Время",
+            "speed": "Скорость",
+        }
+    )
     stdscr.addstr(3, 0, header[: w - 1])
     visible_rows = [row for row in rows if not user_filter or row["user"] == user_filter]
     for screen_idx, row in enumerate(visible_rows[top : top + max(0, h - 5)]):
-        line = (
-            f"{row['user']} | {row['date'].strftime('%Y-%m-%d %H:%M')} | "
-            f"{row['mode']} | {row['correct']} | {row['incorrect']} | "
-            f"{format_duration(row['elapsed'])} | {row['speed']:.1f}"
+        line = format_journal_line(
+            {
+                "user": row["user"],
+                "date": row["date"].strftime("%Y-%m-%d %H:%M"),
+                "mode": row["mode"],
+                "correct": row["correct"],
+                "incorrect": row["incorrect"],
+                "elapsed": format_duration(row["elapsed"]),
+                "speed": f"{row['speed']:.1f}",
+            }
         )
         stdscr.addstr(4 + screen_idx, 0, line[: w - 1])
     if not visible_rows:
@@ -166,10 +196,10 @@ def draw_journal(stdscr, rows, user_filter, top):
     return len(visible_rows)
 
 
-def show_journal(stdscr):
+def show_journal(stdscr, initial_user_filter=None):
     rows = load_journal_rows()
     users = sorted({row["user"] for row in rows if row["user"]})
-    user_filter = None
+    user_filter = initial_user_filter
     top = 0
     while True:
         visible_count = draw_journal(stdscr, rows, user_filter, top)

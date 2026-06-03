@@ -22,9 +22,42 @@ def format_fraction(value):
     return fraction_text(value)
 
 
+def generate_addition():
+    a = randint(1, 10)
+    b = randint(1, 10)
+    return {
+        "expression": f"{a} + {b}",
+        "answer": a + b,
+        "answer_text": str(a + b),
+        "answer_type": "int",
+    }
+
+
+def generate_hard_addition():
+    a = randint(10, 99)
+    b = randint(10, 99)
+    return {
+        "expression": f"{a} + {b}",
+        "answer": a + b,
+        "answer_text": str(a + b),
+        "answer_type": "int",
+    }
+
+
 def generate_multiplication():
     a = randint(2, 6)
     b = randint(1, 6)
+    return {
+        "expression": f"{a} * {b}",
+        "answer": a * b,
+        "answer_text": str(a * b),
+        "answer_type": "int",
+    }
+
+
+def generate_hard_multiplication():
+    a = randint(3, 10)
+    b = randint(9, 20)
     return {
         "expression": f"{a} * {b}",
         "answer": a * b,
@@ -93,7 +126,10 @@ def generate_fraction_brackets():
 
 
 GENERATORS = {
+    "addition": generate_addition,
+    "hard_addition": generate_hard_addition,
     "multiplication": generate_multiplication,
+    "hard_multiplication": generate_hard_multiplication,
     "brackets": generate_brackets,
     "fractions": generate_fractions,
     "fraction_brackets": generate_fraction_brackets,
