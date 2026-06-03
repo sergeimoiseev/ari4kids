@@ -10,8 +10,10 @@ from config import (
     MENU_SEPARATOR,
     TEST_LEN_OPTIONS,
     TRAINING_MODES,
+    get_log_dir,
     get_test_len,
     in_wsl,
+    set_log_dir,
     set_test_len,
 )
 from journal import format_duration, load_journal_rows
@@ -93,6 +95,23 @@ def read_textbox(stdscr, prompt, width=30):
     stdscr.addstr(0, 0, prompt)
     editwin = curses.newwin(1, width, 2, 1)
     rectangle(stdscr, 1, 0, 3, width + 1)
+    stdscr.refresh()
+    box = Textbox(editwin)
+    box.edit()
+    return box.gather().strip()
+
+
+def read_log_dir_textbox(stdscr):
+    stdscr.clear()
+    h, w = stdscr.getmaxyx()
+    current_path = f"Текущий путь: {get_log_dir()}"
+    prompt = "Введите новый путь к папке с логами. Пустой ввод - отмена."
+    stdscr.addstr(0, 0, current_path[: w - 1])
+    stdscr.addstr(2, 0, prompt[: w - 1])
+    width = min(80, max(1, w - 4))
+    y = min(4, max(0, h - 3))
+    editwin = curses.newwin(1, width, y + 1, 1)
+    rectangle(stdscr, y, 0, y + 2, width + 1)
     stdscr.refresh()
     box = Textbox(editwin)
     box.edit()
@@ -288,6 +307,19 @@ def show_settings(stdscr):
     set_test_len(TEST_LEN_OPTIONS[idx])
 
 
+def show_log_dir_settings(stdscr):
+    log_dir = read_log_dir_textbox(stdscr)
+    if not log_dir:
+        return
+    try:
+        set_log_dir(log_dir)
+        message = "Путь сохранен. Нажми любую клавишу."
+    except OSError as error:
+        message = f"Не удалось сохранить путь: {error}. Нажми любую клавишу."
+    print_center(stdscr, message)
+    stdscr.getch()
+
+
 def main(stdscr):
     curses.curs_set(0)
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
@@ -306,6 +338,9 @@ def main(stdscr):
             continue
         if selected == "настройки":
             show_settings(stdscr)
+            continue
+        if selected == "выбор пути к папке с логами":
+            show_log_dir_settings(stdscr)
             continue
         mode_title, mode_key = TRAINING_MODES[current_row]
         run_training(stdscr, user, mode_title, mode_key)
