@@ -125,6 +125,85 @@ def generate_fraction_brackets():
             }
 
 
+SERIES_RESISTORS_SCHEME = [
+    "     +------------+    +------------+     ",
+    "o----|     R1     |----|     R2     |----o",
+    "     +------------+    +------------+     ",
+]
+
+PARALLEL_RESISTORS_SCHEME = [
+    "          +------------+          ",
+    "     +----|     R1     |----+     ",
+    "     |    +------------+    |     ",
+    "o----|                      |----o",
+    "     |    +------------+    |     ",
+    "     +----|     R2     |----+     ",
+    "          +------------+          ",
+]
+
+
+def format_current(current):
+    if current.denominator == 1:
+        return str(current.numerator)
+    return f"{current.numerator / current.denominator:.1f}"
+
+
+def generate_series_ohms_law():
+    current_tenths = randint(1, 10)
+    current = Fraction(current_tenths, 10)
+    resistance_step = current.denominator
+    max_total_resistance = 1000 // current_tenths
+    total_resistance = resistance_step * randint(2, max_total_resistance // resistance_step)
+    r1 = randint(1, total_resistance - 1)
+    r2 = total_resistance - r1
+    voltage = int(current * total_resistance)
+    lines = [
+        "Закон Ома. Последовательное соединение.",
+        "",
+        *SERIES_RESISTORS_SCHEME,
+        "",
+        f"U = {voltage} В, I = {format_current(current)} А, R1 = {r1} Ом",
+        "Найди R2. Ответ введи числом в омах.",
+    ]
+    return {
+        "expression": " | ".join(line for line in lines if line),
+        "text_lines": lines,
+        "answer": r2,
+        "answer_text": str(r2),
+        "answer_type": "int",
+    }
+
+
+def generate_parallel_ohms_law():
+    while True:
+        current_tenths = randint(1, 10)
+        current = Fraction(current_tenths, 10)
+        r1 = randint(2, 200)
+        r2 = randint(2, 200)
+        equivalent_resistance = Fraction(r1 * r2, r1 + r2)
+        voltage = current * equivalent_resistance
+        if voltage.denominator == 1 and 1 <= voltage <= 100:
+            lines = [
+                "Закон Ома. Параллельное соединение.",
+                "",
+                *PARALLEL_RESISTORS_SCHEME,
+                "",
+                f"U = {int(voltage)} В, I = {format_current(current)} А, R1 = {r1} Ом",
+                "Найди R2. Ответ введи числом в омах.",
+            ]
+            return {
+                "expression": " | ".join(line for line in lines if line),
+                "text_lines": lines,
+                "answer": r2,
+                "answer_text": str(r2),
+                "answer_type": "int",
+            }
+
+
+def generate_ohms_law():
+    return choice([generate_series_ohms_law, generate_parallel_ohms_law])()
+
+
 GENERATORS = {
     "addition": generate_addition,
     "hard_addition": generate_hard_addition,
@@ -133,6 +212,7 @@ GENERATORS = {
     "brackets": generate_brackets,
     "fractions": generate_fractions,
     "fraction_brackets": generate_fraction_brackets,
+    "ohms_law": generate_ohms_law,
 }
 
 

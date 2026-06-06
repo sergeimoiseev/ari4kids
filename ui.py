@@ -6,14 +6,17 @@ from datetime import datetime
 import time
 
 from config import (
-    MENU,
     MENU_SEPARATOR,
+    MODE_KEYS_BY_TITLE,
+    MODE_TITLES_BY_KEY,
     TEST_LEN_OPTIONS,
-    TRAINING_MODES,
+    build_main_menu,
     get_log_dir,
+    get_last_training_mode,
     get_test_len,
     in_wsl,
     set_log_dir,
+    set_last_training_mode,
     set_test_len,
 )
 from journal import format_duration, load_journal_rows
@@ -155,21 +158,29 @@ def choose_user(stdscr):
 def show_task(stdscr, task):
     stdscr.clear()
     h, w = stdscr.getmaxyx()
-    prompt = f"{task['expression']} = "
-    prompt_y = max(0, h // 2 - 2)
-    prompt_x = max(0, w // 2 - len(prompt) // 2)
-    stdscr.addstr(prompt_y, prompt_x, prompt[: w - prompt_x - 1])
+    task_lines = task.get("text_lines")
+    if task_lines:
+        prompt_y = max(0, h // 2 - (len(task_lines) + 3) // 2)
+        for idx, line in enumerate(task_lines):
+            line_x = max(0, w // 2 - len(line) // 2)
+            stdscr.addstr(prompt_y + idx, line_x, line[: w - line_x - 1])
+        input_y = min(max(0, prompt_y + len(task_lines) + 1), max(0, h - 3))
+    else:
+        prompt = f"{task['expression']} = "
+        prompt_y = max(0, h // 2 - 2)
+        prompt_x = max(0, w // 2 - len(prompt) // 2)
+        stdscr.addstr(prompt_y, prompt_x, prompt[: w - prompt_x - 1])
+        input_y = min(max(0, prompt_y + 2), max(0, h - 3))
 
     input_width = min(20, max(1, w - 4))
     border_width = input_width + 2
     border_x = max(0, w // 2 - border_width // 2)
-    border_y = min(max(0, prompt_y + 2), max(0, h - 3))
-    editwin = curses.newwin(1, input_width, border_y + 1, border_x + 1)
-    rectangle(stdscr, border_y, border_x, border_y + 2, border_x + border_width - 1)
+    editwin = curses.newwin(1, input_width, input_y + 1, border_x + 1)
+    rectangle(stdscr, input_y, border_x, input_y + 2, border_x + border_width - 1)
 
     if task["answer_type"] == "fraction":
         hint = 'Ответ вводи простой дробью, например "1/3".'
-        hint_y = min(h - 1, border_y + 4)
+        hint_y = min(h - 1, input_y + 4)
         hint_x = max(0, w // 2 - len(hint) // 2)
         stdscr.addstr(hint_y, hint_x, hint[: w - hint_x - 1])
     stdscr.refresh()
@@ -320,6 +331,18 @@ def show_log_dir_settings(stdscr):
     stdscr.getch()
 
 
+def resolve_training_mode(user, selected):
+    if selected.startswith("повторить ("):
+        mode_key = get_last_training_mode(user)
+        if mode_key:
+            return MODE_TITLES_BY_KEY[mode_key], mode_key
+        return None
+    if selected in MODE_KEYS_BY_TITLE:
+        mode_key = MODE_KEYS_BY_TITLE[selected]
+        return selected, mode_key
+    return None
+
+
 def main(stdscr):
     curses.curs_set(0)
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
@@ -329,8 +352,9 @@ def main(stdscr):
     stdscr.getch()
 
     while True:
-        current_row = select_from_menu(stdscr, MENU)
-        selected = MENU[current_row]
+        menu = build_main_menu(user)
+        current_row = select_from_menu(stdscr, menu)
+        selected = menu[current_row]
         if selected == "выйти":
             break
         if selected == "посмотреть журнал":
@@ -342,5 +366,9 @@ def main(stdscr):
         if selected == "выбор пути к папке с логами":
             show_log_dir_settings(stdscr)
             continue
-        mode_title, mode_key = TRAINING_MODES[current_row]
+        training_mode = resolve_training_mode(user, selected)
+        if not training_mode:
+            continue
+        mode_title, mode_key = training_mode
+        set_last_training_mode(user, mode_key)
         run_training(stdscr, user, mode_title, mode_key)
