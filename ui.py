@@ -20,7 +20,7 @@ from config import (
     set_test_len,
 )
 from journal import format_duration, load_journal_rows
-from storage import load_users, save_results, save_user
+from storage import load_users, save_results
 from tasks import GENERATORS, is_correct, parse_answer
 
 
@@ -149,7 +149,6 @@ def choose_user(stdscr):
     while True:
         name = read_textbox(stdscr, "Я - Арифметик! А как тебя зовут?")
         if name:
-            save_user(name)
             return name
         print_center(stdscr, "Имя не должно быть пустым. Нажми любую клавишу.")
         stdscr.getch()
@@ -245,6 +244,34 @@ def format_journal_line(values):
     return " | ".join(fit_cell(value, width, align) for value, width, align in columns)
 
 
+def draw_journal_loading(stdscr, loaded, total, user_filter=None):
+    stdscr.clear()
+    h, w = stdscr.getmaxyx()
+    title = "Журнал"
+    if user_filter:
+        title += f" | пользователь: {user_filter}"
+    stdscr.addstr(0, 0, title[: w - 1])
+
+    message = "Загрузка журнала..."
+    stdscr.addstr(max(0, h // 2 - 2), max(0, w // 2 - len(message) // 2), message[: w - 1])
+
+    bar_width = min(40, max(10, w - 10))
+    progress = 1 if total == 0 else loaded / total
+    filled_width = int(bar_width * progress)
+    bar = "[" + "#" * filled_width + "." * (bar_width - filled_width) + "]"
+    bar_x = max(0, w // 2 - len(bar) // 2)
+    bar_y = max(0, h // 2)
+    stdscr.addstr(bar_y, bar_x, bar[: w - bar_x - 1])
+
+    counter = f"{loaded}/{total} файлов"
+    stdscr.addstr(
+        min(h - 1, bar_y + 2),
+        max(0, w // 2 - len(counter) // 2),
+        counter[: w - 1],
+    )
+    stdscr.refresh()
+
+
 def draw_journal(stdscr, rows, user_filter, top):
     stdscr.clear()
     h, w = stdscr.getmaxyx()
@@ -286,7 +313,10 @@ def draw_journal(stdscr, rows, user_filter, top):
 
 
 def show_journal(stdscr, initial_user_filter=None):
-    rows = load_journal_rows()
+    def update_progress(loaded, total):
+        draw_journal_loading(stdscr, loaded, total, initial_user_filter)
+
+    rows = load_journal_rows(update_progress)
     users = sorted({row["user"] for row in rows if row["user"]})
     user_filter = initial_user_filter
     top = 0

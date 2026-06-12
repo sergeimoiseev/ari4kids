@@ -8,14 +8,13 @@ import sys
 
 DEFAULT_TEST_LEN = 10
 TEST_LEN_OPTIONS = [10, 20, 30]
-USER_FILE = "users.txt"
 LOG_PREFIX = "ari4kids_test"
 SETTINGS_FILE = "settings.json"
 MENU_SEPARATOR = None
 
 TRAINING_MODES = [
-    ("сложение", "addition"),
-    ("сложное сложение", "hard_addition"),
+    ("сложение и вычитание", "addition"),
+    ("сложное сложение и вычитание", "hard_addition"),
     ("умножение", "multiplication"),
     ("сложное умножение", "hard_multiplication"),
     ("скобки", "brackets"),

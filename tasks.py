@@ -23,12 +23,19 @@ def format_fraction(value):
 
 
 def generate_addition():
-    a = randint(1, 10)
-    b = randint(1, 10)
+    operation = choice(["+", "-"])
+    if operation == "+":
+        a = randint(1, 10)
+        b = randint(1, 10)
+        answer = a + b
+    else:
+        a = randint(1, 10)
+        b = randint(1, a)
+        answer = a - b
     return {
-        "expression": f"{a} + {b}",
-        "answer": a + b,
-        "answer_text": str(a + b),
+        "expression": f"{a} {operation} {b}",
+        "answer": answer,
+        "answer_text": str(answer),
         "answer_type": "int",
     }
 
@@ -36,10 +43,12 @@ def generate_addition():
 def generate_hard_addition():
     a = randint(10, 99)
     b = randint(10, 99)
+    operation = choice(["+", "-"])
+    answer = a + b if operation == "+" else a - b
     return {
-        "expression": f"{a} + {b}",
-        "answer": a + b,
-        "answer_text": str(a + b),
+        "expression": f"{a} {operation} {b}",
+        "answer": answer,
+        "answer_text": str(answer),
         "answer_type": "int",
     }
 

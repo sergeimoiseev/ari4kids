@@ -1,27 +1,65 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from glob import glob
+import os
 import re
 
 import pandas as pd
 
-from config import LOG_PREFIX, USER_FILE, ensure_storage, storage_path
+from config import (
+    LOG_PREFIX,
+    MODE_KEYS_BY_TITLE,
+    MODE_TITLES_BY_KEY,
+    ensure_storage,
+    storage_path,
+)
+
+
+LEGACY_MODE_TITLES = {
+    "сложение",
+    "сложное сложение",
+}
+
+
+def known_mode_filename_suffixes():
+    suffixes = set(MODE_TITLES_BY_KEY)
+    suffixes.update(MODE_KEYS_BY_TITLE)
+    suffixes.update(LEGACY_MODE_TITLES)
+    return sorted(suffixes, key=len, reverse=True)
+
+
+def extract_user_from_log_filename(path):
+    basename = os.path.basename(path)
+    stem, ext = os.path.splitext(basename)
+    if ext.lower() != ".xlsx" or not stem.startswith(LOG_PREFIX + " "):
+        return None
+
+    stem_without_prefix = stem[len(LOG_PREFIX) + 1 :]
+    date_match = re.search(r" \d{2}_\d{2}_\d{4} \d{2}_\d{2}_\d{2}$", stem_without_prefix)
+    if not date_match:
+        return None
+
+    before_date = stem_without_prefix[: date_match.start()].strip()
+    for mode_suffix in known_mode_filename_suffixes():
+        suffix = " " + mode_suffix
+        if before_date.endswith(suffix):
+            user = before_date[: -len(suffix)].strip()
+            return user or None
+    return before_date or None
+
+
+def is_valid_user_name(user):
+    return bool(user and user.strip() and user.strip().lower() != "nan")
 
 
 def load_users():
     ensure_storage()
-    path = storage_path(USER_FILE)
-    try:
-        with open(path, "r", encoding="utf-8") as users_file:
-            return [line.strip() for line in users_file if line.strip()]
-    except FileNotFoundError:
-        return []
-
-
-def save_user(name):
-    users = load_users()
-    if name and name not in users:
-        with open(storage_path(USER_FILE), "a", encoding="utf-8") as users_file:
-            users_file.write(name + "\n")
+    users = set()
+    for path in glob(storage_path(f"{LOG_PREFIX}*.xlsx")):
+        user = extract_user_from_log_filename(path)
+        if is_valid_user_name(user):
+            users.add(user)
+    return sorted(users, key=str.casefold)
 
 
 def safe_filename_part(value):
